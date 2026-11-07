@@ -1,0 +1,8 @@
+{
+  "event": "order.created",
+  "order_id": "HM-TEST-004",
+  "customer_id": "C0103",
+  "merchant_id": "M001",
+  "total_amount": 0,
+  "items": []
+}

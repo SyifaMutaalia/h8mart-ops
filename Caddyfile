@@ -1,0 +1,18 @@
+# Caddy hanya mem-proxy n8n (webhook, editor, endpoint resume). Service lain tidak dipublikasikan.
+# Endpoint MCP (WF2) dipakai workflow di dalam stack lewat http://n8n:5678/mcp/..., jadi tidak dibuka ke internet;
+# MCP tingkat instance (/mcp-server/*) ikut diblokir.
+{
+	email {$SSL_EMAIL}
+}
+
+{$DOMAIN_NAME} {
+	@mcp path /mcp/* /mcp-test/* /mcp-server/*
+	handle @mcp {
+		respond "MCP hanya untuk workflow internal" 403
+	}
+	handle {
+		reverse_proxy n8n:5678 {
+			flush_interval -1
+		}
+	}
+}

@@ -1,0 +1,94 @@
+# =============================================================================
+# H8Mart Quick-Commerce Ops: stack milestone Phase 3
+#   n8n + task-runners (Code Python/JS), postgres (core.* + ops.*), mock-api (Merchant Stock, Payment, Notification),
+#   uptime-kuma (heartbeat). Semua versi dikunci lewat .env, tidak ada :latest.
+# Jalankan:  docker compose up -d       Reset data:  docker compose down -v
+# =============================================================================
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:${N8N_VERSION:-2.44.7}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${N8N_HOST_PORT:-5690}:5678"  # hanya laptop sendiri, tidak terbuka ke Wi-Fi
+    environment:
+      - GENERIC_TIMEZONE=Asia/Jakarta
+      - TZ=Asia/Jakarta
+      # URL yang dipakai n8n untuk Production URL webhook dan resume URL node Wait (bukan WEBHOOK_URL: deprecated sejak 2.35.0).
+      - N8N_WEBHOOK_URL=http://localhost:${N8N_HOST_PORT:-5690}/
+      - N8N_EDITOR_BASE_URL=http://localhost:${N8N_HOST_PORT:-5690}/
+      - N8N_RUNNERS_MODE=external
+      - N8N_RUNNERS_BROKER_LISTEN_ADDRESS=0.0.0.0
+      - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN:-aien-lab-local-token}
+      - N8N_NATIVE_PYTHON_RUNNER=true
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+      # Kebijakan penyimpanan data eksekusi (sama dengan stack bersama Sesi 10); nilai dari .env, default resmi n8n.
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=${EXECUTIONS_DATA_SAVE_ON_ERROR:-all}
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=${EXECUTIONS_DATA_SAVE_ON_SUCCESS:-all}
+      - EXECUTIONS_DATA_SAVE_ON_PROGRESS=${EXECUTIONS_DATA_SAVE_ON_PROGRESS:-false}
+      - EXECUTIONS_DATA_PRUNE=${EXECUTIONS_DATA_PRUNE:-true}
+      - EXECUTIONS_DATA_MAX_AGE=${EXECUTIONS_DATA_MAX_AGE:-336}
+      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=${EXECUTIONS_DATA_PRUNE_MAX_COUNT:-10000}
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  task-runners:
+    image: n8nio/runners:${N8N_VERSION:-2.44.7}
+    restart: unless-stopped
+    environment:
+      - N8N_RUNNERS_TASK_BROKER_URI=http://n8n:5679
+      - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN:-aien-lab-local-token}
+      - TZ=Asia/Jakarta
+    depends_on:
+      - n8n
+
+  # Database H8Mart. Dari n8n: host `postgres`, port 5432 (BUKAN localhost). Dari laptop: localhost:${PG_HOST_PORT}.
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-16.15-alpine}
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=h8mart
+      - POSTGRES_PASSWORD=${PG_SUPERUSER_PASSWORD:-h8mart-admin-lab}
+      - POSTGRES_DB=h8mart
+      - PG_READER_PASSWORD=${PG_READER_PASSWORD:-mcp-reader-lab}
+      - PG_WRITER_PASSWORD=${PG_WRITER_PASSWORD:-ops-writer-lab}
+      - TZ=Asia/Jakarta
+      - PGTZ=Asia/Jakarta
+    volumes:
+      - ./seed:/docker-entrypoint-initdb.d:ro
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${PG_HOST_PORT:-5440}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U h8mart -d h8mart"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  # Mock Merchant Stock API + Payment API + Notification API (satu server kecil, logika di mock-api/server.js).
+  # Dari n8n: http://mock-api:8080
+  mock-api:
+    image: ${MOCK_API_IMAGE:-node:24-alpine}
+    restart: unless-stopped
+    command: ["node", "/app/server.js"]
+    environment:
+      - MOCK_API_KEY=${MOCK_API_KEY:-h8mart-mock-key}
+      - PORT=8080
+    volumes:
+      - ./mock-api:/app:ro
+    ports:
+      - "127.0.0.1:${MOCK_API_HOST_PORT:-8080}:8080"
+
+  # Heartbeat monitor (push monitor). Dari n8n: http://uptime-kuma:3001/api/push/<token>
+  uptime-kuma:
+    image: louislam/uptime-kuma:${UPTIME_KUMA_VERSION:-2.5.8}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${KUMA_HOST_PORT:-3011}:3001"
+    volumes:
+      - kuma_data:/app/data
+
+volumes:
+  n8n_data:
+  pg_data:
+  kuma_data:

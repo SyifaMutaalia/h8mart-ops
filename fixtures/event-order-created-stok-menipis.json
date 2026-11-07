@@ -1,0 +1,13 @@
+{
+  "event": "order.created",
+  "order_id": "HM-TEST-003",
+  "customer_id": "C0102",
+  "merchant_id": "M001",
+  "total_amount": 120000,
+  "items": [
+    {
+      "sku": "SKU-004",
+      "qty": 4
+    }
+  ]
+}

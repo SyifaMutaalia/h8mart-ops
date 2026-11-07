@@ -1,0 +1,218 @@
+{
+  "name": "WF5 · Reliability & Monitoring H8Mart",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        160,
+        300
+      ],
+      "id": "9f79a3be-cd07-58d4-80ff-9250c27ef369",
+      "name": "Tangkap Kegagalan"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2496332e-4ba1-57f4-b218-818dafd029e3",
+              "name": "waktu_wib",
+              "value": "={{ $now.setZone('Asia/Jakarta').toFormat('yyyy-MM-dd HH:mm:ss') + ' WIB' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        400,
+        300
+      ],
+      "id": "091b5969-ac2a-53bf-adcf-616aaa899c75",
+      "name": "Tambah Waktu WIB"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "pythonNative",
+        "pythonCode": "# Pola H8Mart x Day 5, native Python Code node.\nWORKFLOW_KRITIS = [\"WF1 · Stock Sync, Order Intake & Digest\", \"WF4 · Kompensasi & Refund\"]\ndata = _items[0][\"json\"]\nworkflow = data.get(\"workflow\") or {}\nexecution = data.get(\"execution\") or {}\ntrigger = data.get(\"trigger\") or {}\nsumber = execution if execution else trigger\nerror = sumber.get(\"error\") or {}\nnama = workflow.get(\"name\") or \"tidak diketahui\"\nerror_message = str(error.get(\"message\") or \"kegagalan tanpa pesan\")\nnode = str(sumber.get(\"lastNodeExecuted\") or \"trigger\")\nkey = \"-\"\nif error_message.startswith(\"[\") and \"]\" in error_message:\n    key = error_message[1:error_message.index(\"]\")]\nseverity = \"kritis\" if (nama in WORKFLOW_KRITIS or trigger or \"refund\" in node.lower() or \"stok\" in node.lower()) else \"rutin\"\nwaktu = data.get(\"waktu_wib\", \"-\")\nurl = sumber.get(\"url\") or \"-\"\ntindakan = \"Periksa execution, retry terkontrol, dan dead-letter\" if severity == \"kritis\" else \"Tinjau pada review log harian\"\npesan = \"[\" + severity.upper() + \"] \" + str(nama) + \"\\nNode: \" + node + \"\\nWaktu: \" + str(waktu) + \"\\nBusiness key: \" + key + \"\\nError: \" + error_message[:600] + \"\\nExecution: \" + str(url) + \"\\nTindakan: \" + tindakan\nreturn [{\"json\": {\"severity\": severity, \"workflow\": nama, \"node_gagal\": node, \"waktu_wib\": waktu, \"business_key\": key, \"error_message\": error_message[:600], \"execution_url\": url, \"tindakan\": tindakan, \"pesan\": pesan}}]\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        630,
+        300
+      ],
+      "id": "e8430b57-8282-5e68-803a-6cd20ec2bf87",
+      "name": "Susun Pesan Alert"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-eq",
+              "leftValue": "={{ $json.severity }}",
+              "rightValue": "kritis",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        860,
+        300
+      ],
+      "id": "5bcf8003-0c49-5aeb-963e-dbc37c9e400c",
+      "name": "Kritis?"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "ISI_CHAT_ID_OPS",
+        "text": "={{ $json.pesan }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1110,
+        170
+      ],
+      "id": "cf0ea552-5d70-5dfc-9fea-291205e364a7",
+      "name": "Kirim Alert Telegram"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://mock-api:8080/notify",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({channel:\"log-harian\", title:$json.severity + \" | \" + $json.workflow, text:$json.pesan}) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1110,
+        440
+      ],
+      "id": "632b5fea-8d38-5ed8-9be0-55caeff63e4a",
+      "name": "Catat Log Rutin"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://mock-api:8080/notify",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({channel:\"log-kritis\", title:$json.severity + \" | \" + $json.workflow, text:$json.pesan}) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1110,
+        220
+      ],
+      "id": "c6e0905b-62da-4c1c-8fa7-e35ec685b111",
+      "name": "Catat Log Kritis"
+    }
+  ],
+  "connections": {
+    "Tangkap Kegagalan": {
+      "main": [
+        [
+          {
+            "node": "Tambah Waktu WIB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tambah Waktu WIB": {
+      "main": [
+        [
+          {
+            "node": "Susun Pesan Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Susun Pesan Alert": {
+      "main": [
+        [
+          {
+            "node": "Kritis?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kritis?": {
+      "main": [
+        [
+          {
+            "node": "Kirim Alert Telegram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Catat Log Kritis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Catat Log Rutin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jakarta"
+  },
+  "active": false,
+  "pinData": {},
+  "tags": []
+}

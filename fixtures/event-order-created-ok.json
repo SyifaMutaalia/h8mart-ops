@@ -1,0 +1,14 @@
+{
+  "event": "order.created",
+  "order_id": "HM-TEST-001",
+  "customer_id": "C0100",
+  "merchant_id": "M001",
+  "total_amount": 80000,
+  "customer_note": "Tolong titip ke satpam.",
+  "items": [
+    {
+      "sku": "SKU-001",
+      "qty": 1
+    }
+  ]
+}

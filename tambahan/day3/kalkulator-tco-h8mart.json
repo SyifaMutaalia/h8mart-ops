@@ -1,0 +1,202 @@
+{
+  "name": "Tambahan Day 3 · Kalkulator TCO H8Mart",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "id": "26cc39c1-1b05-5180-be5b-2ac566f2215f",
+      "name": "Jalankan Kalkulasi"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "04962866-38ff-5bb0-a3fe-37c249a32894",
+              "name": "nama_organisasi",
+              "value": "H8Mart Quick-Commerce Ops",
+              "type": "string"
+            },
+            {
+              "id": "23eb359e-962a-5740-9ace-6ee6f5d85ee7",
+              "name": "eksekusi_per_bulan",
+              "value": 35000,
+              "type": "number"
+            },
+            {
+              "id": "2851128f-4c42-5d37-bf47-de7448b6c311",
+              "name": "rate_sdm_per_jam",
+              "value": 15,
+              "type": "number"
+            },
+            {
+              "id": "aabbccdd-ec2credit-2026-001",
+              "name": "kredit_free_tier_aws_usd",
+              "value": 100,
+              "type": "number"
+            },
+            {
+              "id": "aabbccdd-ec2tier-2026-002",
+              "name": "akun_baru_free_plan",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        420,
+        300
+      ],
+      "id": "5f5b8e4c-d279-5a0b-9ef5-75dd57f52f66",
+      "name": "Profil Organisasi"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "pythonNative",
+        "pythonCode": "# Perhitungan sesuai tabel asumsi praktikum Day 3 + skema kredit Free Tier.\n# Field kredit_aws adalah input skenario, bukan pembacaan saldo tagihan nyata.\nprofil = _items[0][\"json\"]\neksekusi = int(profil[\"eksekusi_per_bulan\"])\nrate = float(profil[\"rate_sdm_per_jam\"])\nfree_plan = bool(profil.get(\"akun_baru_free_plan\", False))\nkredit = max(0.0, float(profil.get(\"kredit_free_tier_aws_usd\", 0))) if free_plan else 0.0\nif eksekusi <= 2500:\n    plan_cloud, harga_cloud = \"Starter\", 22\nelif eksekusi <= 10000:\n    plan_cloud, harga_cloud = \"Pro\", 54\nelse:\n    plan_cloud, harga_cloud = \"Enterprise (estimasi lab)\", 720\nopsi_deployment = [\n    {\"opsi\": \"n8n Cloud (\" + plan_cloud + \")\", \"biaya_langsung_per_bulan\": harga_cloud, \"jam_personil_per_bulan\": 0.5, \"biaya_operasional_12_bulan\": 0, \"biaya_risiko_12_bulan\": 100, \"aws\": False},\n    {\"opsi\": \"Self-Hosted (AWS EC2 Jakarta)\", \"biaya_langsung_per_bulan\": 25, \"jam_personil_per_bulan\": 4, \"biaya_operasional_12_bulan\": 240, \"biaya_risiko_12_bulan\": 300, \"aws\": True},\n    {\"opsi\": \"On-Premise\", \"biaya_langsung_per_bulan\": 210, \"jam_personil_per_bulan\": 12, \"biaya_operasional_12_bulan\": 900, \"biaya_risiko_12_bulan\": 500, \"aws\": False},\n]\nhasil = []\nfor opsi in opsi_deployment:\n    langsung_kotor = opsi[\"biaya_langsung_per_bulan\"] * 12\n    # Free plan AWS berakhir maksimal 6 bulan; TCO 12 bulan HANYA dapat dilanjutkan setelah upgrade.\n    # Diskon maksimum dibatasi biaya AWS 6 bulan pertama + saldo kredit. Kredit tidak diterapkan ke n8n Cloud/on-prem.\n    kredit_digunakan = min(kredit, opsi[\"biaya_langsung_per_bulan\"] * 6) if opsi[\"aws\"] else 0\n    langsung = langsung_kotor - kredit_digunakan\n    personil = opsi[\"jam_personil_per_bulan\"] * rate * 12\n    operasi = opsi[\"biaya_operasional_12_bulan\"]\n    risiko = opsi[\"biaya_risiko_12_bulan\"]\n    hasil.append({\"json\": {\n        \"nama_organisasi\": profil[\"nama_organisasi\"], \"eksekusi_per_bulan\": eksekusi,\n        \"opsi\": opsi[\"opsi\"], \"biaya_langsung_sebelum_kredit_usd\": round(langsung_kotor, 2),\n        \"kredit_free_tier_digunakan_usd\": round(kredit_digunakan, 2),\n        \"biaya_langsung_12_bulan\": round(langsung, 2),\n        \"biaya_personil_12_bulan\": round(personil, 2),\n        \"biaya_operasional_12_bulan\": operasi, \"biaya_risiko_12_bulan\": risiko,\n        \"tco_12_bulan\": round(langsung + personil + operasi + risiko, 2),\n        \"catatan\": \"12 bulan mengandaikan upgrade setelah bulan ke-6; bukan gratis 12 bulan\" if opsi[\"aws\"] and free_plan else \"Angka asumsi lab\"\n    }})\nreturn hasil\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ],
+      "id": "03e47f54-b59a-5f15-8a17-8d1063d2fe8d",
+      "name": "Hitung TCO 12 Bulan"
+    },
+    {
+      "parameters": {
+        "type": "simple",
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "tco_12_bulan",
+              "order": "ascending"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ],
+      "id": "cece37f1-35e6-55b5-adae-1c6fcef2b287",
+      "name": "Urutkan dari TCO Termurah"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "pythonNative",
+        "pythonCode": "opsi = [item[\"json\"] for item in _items]\ntermurah, termahal = opsi[0], opsi[-1]\nperingkat = []\nfor i, o in enumerate(opsi, start=1):\n    peringkat.append({\"peringkat\":i,\"opsi\":o[\"opsi\"],\"tco_12_bulan\":o[\"tco_12_bulan\"]})\nreturn [{\"json\":{\"nama_organisasi\":termurah[\"nama_organisasi\"],\"eksekusi_per_bulan\":termurah[\"eksekusi_per_bulan\"],\n    \"opsi_termurah\":termurah[\"opsi\"],\"tco_termurah_usd\":termurah[\"tco_12_bulan\"],\n    \"opsi_termahal\":termahal[\"opsi\"],\"tco_termahal_usd\":termahal[\"tco_12_bulan\"],\n    \"selisih_usd\":round(termahal[\"tco_12_bulan\"]-termurah[\"tco_12_bulan\"],2),\"peringkat\":peringkat}}]\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        300
+      ],
+      "id": "a22ca467-17b9-5922-aebe-aca0692f169a",
+      "name": "Susun Ringkasan Perbandingan"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://webhook.site/GANTI_UUID_TCO",
+        "options": {
+          "timeout": 15000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1400,
+        300
+      ],
+      "id": "8be3a300-7522-59ea-bb7a-a1bd189781a1",
+      "name": "Kirim Ringkasan TCO"
+    }
+  ],
+  "connections": {
+    "Jalankan Kalkulasi": {
+      "main": [
+        [
+          {
+            "node": "Profil Organisasi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Profil Organisasi": {
+      "main": [
+        [
+          {
+            "node": "Hitung TCO 12 Bulan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hitung TCO 12 Bulan": {
+      "main": [
+        [
+          {
+            "node": "Urutkan dari TCO Termurah",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Urutkan dari TCO Termurah": {
+      "main": [
+        [
+          {
+            "node": "Susun Ringkasan Perbandingan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Susun Ringkasan Perbandingan": {
+      "main": [
+        [
+          {
+            "node": "Kirim Ringkasan TCO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jakarta"
+  },
+  "active": false,
+  "pinData": {},
+  "tags": []
+}

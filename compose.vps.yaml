@@ -1,0 +1,45 @@
+# =============================================================================
+# H8Mart Quick-Commerce Ops: override untuk VPS (pola Sesi 9: AWS EC2 + Caddy + DuckDNS)
+# Pakai bersama compose.yaml:
+#   docker compose -f compose.yaml -f compose.vps.yaml up -d
+# Hanya Caddy yang membuka port ke internet (80 dan 443) dan hanya mem-proxy n8n.
+# postgres (5440), mock-api (8080), dan Uptime Kuma (3011) hanya di-bind ke 127.0.0.1 VPS: tidak terjangkau dari internet, akses lewat SSH tunnel
+# (mis. ssh -L 3011:localhost:3011 -L 8080:localhost:8080 ubuntu@<IP>). n8n hanya lewat Caddy.
+# Variabel wajib di .env VPS: DOMAIN_NAME, SSL_EMAIL, N8N_ENCRYPTION_KEY (lihat .env.example, bagian VPS).
+# Butuh Docker Compose v2.24 atau lebih baru (tag !override); cek dengan: docker compose version
+# =============================================================================
+services:
+  n8n:
+    ports: !override []
+    environment:
+      - N8N_HOST=${DOMAIN_NAME:?isi DOMAIN_NAME di .env}
+      - N8N_PROTOCOL=https
+      - N8N_WEBHOOK_URL=https://${DOMAIN_NAME}/
+      - N8N_EDITOR_BASE_URL=https://${DOMAIN_NAME}/
+      - N8N_PROXY_HOPS=1
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?isi N8N_ENCRYPTION_KEY di .env}
+  postgres:
+    ports: !override ["127.0.0.1:${PG_HOST_PORT:-5440}:5432"]
+  mock-api:
+    ports: !override ["127.0.0.1:${MOCK_API_HOST_PORT:-8080}:8080"]
+  uptime-kuma:
+    ports: !override ["127.0.0.1:${KUMA_HOST_PORT:-3011}:3001"]
+  caddy:
+    image: caddy:${CADDY_VERSION:-2.11.7-alpine}
+    restart: unless-stopped
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+      - SSL_EMAIL=${SSL_EMAIL:?isi SSL_EMAIL di .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - n8n
+
+volumes:
+  caddy_data:
+  caddy_config:
