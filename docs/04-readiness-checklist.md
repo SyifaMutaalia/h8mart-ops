@@ -1,57 +1,95 @@
-# 04 · Governance & Integration Readiness Checklist · H8Mart Quick-Commerce Ops
+# 04. Integration Readiness & System Compatibility — H8Mart
 
-**Nama:** Syifa Mutaalia  
-**Pembaruan:** 10 November 2026.  
-**Aturan penandaan:** **Siap** = fungsi telah ditunjukkan lewat output uji yang dilaporkan; **Belum** = belum lulus/belum ada bukti memadai; **N/A** = tidak berlaku. **Status Siap belum cukup untuk submission bila screenshot/export belum disimpan ke repo** sesuai `guide/submission.md`.
+**Tanggal pemeriksaan:** 13 November 2026  
+**Lingkungan:** AWS EC2 (Ubuntu 24.04), Docker Compose, n8n, PostgreSQL, Mock API, Caddy, dan Uptime Kuma  
+**Ruang lingkup:** integrasi Merchant Stock API, Order Intake, MCP, AI Merchant Assistant, Compensation/Refund, dan monitoring.
 
-## 1. Credential & Akses
+## 1. Hasil pemeriksaan
 
-| Pemeriksaan | Status | Bukti / tindakan berikutnya |
+Pemeriksaan ini dilakukan setelah workflow H8Mart diuji di server. WF1 sampai WF5 telah dijalankan dan hasil pengujiannya sesuai skenario yang dicoba. Pemeriksaan readiness digunakan untuk melihat kesiapan API, database, akses, serta operasional. Status pengujian workflow dan kesiapan go-live dinilai secara terpisah.
+
+### A. API Readiness
+
+| Kode | Item | Kondisi yang ditemukan | Status |
+| --- | --- | --- | --- |
+| A1 | Dokumentasi dan pengujian endpoint | API H8Mart memiliki kontrak pengujian. Endpoint Merchant Stock dan Notification sudah dipanggil dari workflow. | Siap |
+| A2 | Ketersediaan endpoint | Endpoint yang digunakan oleh WF1–WF4 dapat diakses pada skenario pengujian yang dilakukan, termasuk webhook produksi. | Siap pada skenario uji |
+| A3 | Kesesuaian response | Respons Merchant Stock memiliki `merchant_id`, `as_of`, dan `items`; Notification mengembalikan data pesan. Respons MCP/AI mengikuti struktur yang digunakan pada workflow. | Siap pada skenario uji |
+| A4 | Penanganan kode error | M009 mengembalikan HTTP 500 sesuai skenario mock. Retry, pencatatan dead-letter, dan pemberitahuan kegagalan digunakan agar proses merchant lain tetap berjalan. Jalur order 200/409/422 juga telah diuji. | Siap |
+
+**Hasil API:** Siap untuk pengujian dan demonstrasi Milestone. Error M009 merupakan bagian dari skenario penanganan kegagalan, bukan kegagalan seluruh workflow.
+
+### B. Data & Database Readiness
+
+| Kode | Item | Kondisi yang ditemukan | Status |
+| --- | --- | --- | --- |
+| D1 | Struktur database | Database menggunakan skema `core` dan `ops`. Query PostgreSQL telah digunakan dalam proses stock sync, MCP, dead-letter, dan tiket. | Siap pada tabel yang dipakai |
+| D2 | Ketersediaan kolom | Kolom yang digunakan untuk sinkronisasi stok, pembacaan KPI, dan pencatatan operasional dapat diakses pada pengujian. | Siap |
+| D3 | Kualitas data | Hasil query `core.merchant_stock`: **205 baris**, **0 `product_id` NULL**, dan **0 duplikasi pasangan (`merchant_id`, `product_id`)**. | Siap — terbukti |
+| D4 | Volume dan pola akses | Terdapat 12 merchant. Sinkronisasi dijadwalkan setiap 15 menit dan digest setiap 07.00 WIB. Hasil normalisasi pernah menghasilkan 188 baris untuk 11 merchant yang merespons. Uji beban maksimum belum dilakukan. | Siap untuk beban uji Milestone |
+
+**Hasil Data & Database:** Siap untuk skenario Milestone. Query D3 menunjukkan jumlah dan kualitas data stok sesuai target.
+
+### C. Access & Security Readiness
+
+| Kode | Item | Kondisi yang ditemukan | Status |
+| --- | --- | --- | --- |
+| S1 | Penyimpanan credential | OpenAI, PostgreSQL, Bearer Auth, Header Auth Mock API, Webhook Auth, dan Telegram disimpan melalui menu **Credentials** pada n8n; terlihat pada screenshot konfigurasi. | Siap — ada bukti |
+| S2 | Akun database khusus | MCP memakai role `mcp_reader` dan proses operasional menggunakan credential database tersendiri. | Siap |
+| S3 | Pembatasan hak akses | Pengujian pada `mcp_reader` untuk `core.orders` menunjukkan SELECT diperbolehkan, sedangkan INSERT, UPDATE, dan DELETE tidak diperbolehkan. Pemeriksaan ini membuktikan pembatasan pada role dan tabel tersebut. | Siap pada akses yang diuji |
+| S4 | Distribusi credential | Selama pengerjaan, API key dan token asli tidak diunggah ke GitHub maupun dibagikan melalui chat, berdasarkan konfirmasi pengembang. | Siap — konfirmasi pengembang |
+
+**Hasil Access & Security:** Penyimpanan credential sudah memakai fasilitas n8n. Pemeriksaan tambahan yang dapat dilakukan sebelum pemakaian bisnis nyata adalah meninjau ulang seluruh hak akses per tabel dan memastikan export workflow tidak menyertakan nilai rahasia.
+
+### D. Operational Readiness
+
+| Kode | Item | Kondisi yang ditemukan | Status |
+| --- | --- | --- | --- |
+| O1 | PIC dan eskalasi | Selama Milestone, pengoperasian EC2, n8n, dan workflow ditangani oleh pengembang. Error Workflow dan Telegram digunakan untuk notifikasi gangguan. | Siap untuk Milestone |
+| O2 | Jadwal maintenance | Jadwal sinkronisasi 15 menit dan digest 07.00 WIB telah diketahui. Maintenance server direncanakan dilakukan di luar jadwal digest dengan trigger terkait dinonaktifkan sementara. Jadwal maintenance rutin belum ditetapkan tertulis. | Perlu penetapan jadwal operasional |
+| O3 | Kapasitas dan monitoring | Sistem berjalan pada EC2 `t3.small`; Uptime Kuma digunakan untuk pemantauan. Hasil uji workflow tersedia, sedangkan batas kapasitas maksimum belum diukur. | Siap untuk beban uji Milestone |
+| O4 | Rencana rollback | Jika perubahan workflow mengganggu layanan, nonaktifkan trigger terkait, kembalikan workflow dari export versi terakhir yang berhasil, uji kembali, lalu aktifkan/publish ulang. Untuk perubahan Compose/DB, gunakan konfigurasi dan backup yang telah diverifikasi sebelum melakukan perubahan. | Rencana tersedia; pemulihan DB belum diuji |
+
+**Hasil Operasional:** Workflow sudah berjalan dan notifikasi teruji. Sebelum go-live bisnis nyata, jadwal maintenance rutin, penanggung jawab lanjutan, dan pengujian prosedur pemulihan perlu ditetapkan.
+
+## 2. Bukti pengujian workflow
+
+| Workflow | Bukti hasil pengujian | Hasil |
 | --- | --- | --- |
-| Semua credential disimpan di n8n Credentials, bukan node/Code/repo | **Belum** (audit akhir) | Telah dipakai credential Postgres, OpenAI, Telegram dan Header Auth. **Audit export WF1–WF5** sebelum commit: token, password, credential IDs, sample secret dan screenshot tidak boleh terlihat. |
-| Role DB dipisah: `mcp_reader` (read-only) untuk WF2 dan membaca di WF3, `ops_writer` untuk menulis `ops.*` | **Siap pada pemeriksaan `core.orders`; perlu perluasan** | Query aktual: `current_user=mcp_reader`, SELECT=`true`, INSERT/UPDATE/DELETE=`false` pada `core.orders`. WF2 tiga SELECT tool lulus. **Belum membuktikan seluruh tabel**; simpan `evidence/wf2/04-read-only-access.png` dan periksa `ops.*` seperlunya. |
-| Webhook dilindungi Header Auth | **Belum** (negative test akhir) | Konfigurasi `X-H8Mart-Token` pernah dipakai; rekam HTTP 403 bila tanpa/salah token pada WF1/WF3/WF4. Rotasi token sebelum DM penilai. |
-| `.env` tidak ada di repo; `.env.example` tanpa nilai nyata | **Belum** (audit repo live) | Template dan `.gitignore` tersedia; periksa `git status`, `git ls-files` dan konten repo publik sebelum push. |
-| Token push Uptime Kuma diganti placeholder di JSON export | **Belum** | Periksa JSON WF1; ganti token aktual dengan `ISI_TOKEN_PUSH_KUMA` di salinan export untuk GitHub, bukan instance n8n yang berjalan. |
-| Token bot Telegram hanya di credential n8n | **Belum** (audit export/screenshot) | Jangan masukkan token dari BotFather dalam file, URL screenshot atau doc; periksa export dan terminal. |
-| Chat Telegram dibatasi allowlist `chat_id` ke `merchant_id`; chat asing ditolak | **Belum** (evidence lengkap) | Tes Telegram menunjukkan allowlist pernah lulus untuk M003, tetapi respons bot dan cabang chat asing perlu uji akhir. `Check Allowlist` → `Chat Terdaftar?` dan data `ops.telegram_merchants`. |
-| Akses instance n8n dibatasi (user/owner, port yang terbuka) | **Belum** (bukti SG belum disertakan) | Cek AWS SG: 22 hanya IP pemilik, 80/443 publik; jangan buka 5432, 8080, 5678, 3001. Simpan screenshot tanpa IP/secret sensitif. |
+| WF1A — Sinkronisasi stok | 11 merchant berhasil diproses; M009 mengalami HTTP 500 yang memang disengaja dan diarahkan ke dead-letter/notifikasi. Data stok akhir berjumlah 205 tanpa `product_id` kosong atau pasangan duplikat. | Lulus |
+| WF1B — Order Intake | Skenario respons 200, 409, 422, dan duplikasi order telah diuji. | Lulus |
+| WF1C — Daily Digest | Telegram menerima laporan pukul 07.00 WIB. Data 7 November 2026: 162 order, 25 batal, 134 terkirim, 111 tepat waktu; cancel rate 15,43% dan SLA 30 menit 82,84%. | Lulus |
+| WF2 — MCP Server | Tool KPI, alasan pembatalan, dan status stok merchant menghasilkan data; role pembaca dibatasi untuk operasi baca pada tabel yang diuji. | Lulus |
+| WF3 — AI Merchant Assistant | Bot Telegram menjawab pertanyaan tentang SKU dan menampilkan respons eskalasi untuk pertanyaan voucher/refund yang tidak dapat dilayani langsung. | Lulus pada skenario uji |
+| WF4 — Compensation & Refund | Pengujian voucher, refund, dan alur persetujuan telah dilakukan menurut catatan pengujian proyek. | Lulus berdasarkan pengujian |
+| WF5 — Error Handling | Error workflow menghasilkan notifikasi Telegram; Notification API juga menerima pesan alert. | Lulus |
 
-### Bukti WF2 yang sudah diketahui
+*Catatan:* Data digest menggunakan tanggal data terakhir pada dataset uji, sehingga tanggal data pada pesan tidak harus sama dengan tanggal pengiriman Telegram.
 
-- `Tool KPI Merchant` M003 pada **2026-11-07**: `total_order=15`, `order_batal=9`, `order_terkirim=6`, `order_tepat_waktu=3`, `cancel_rate_pct=60.00`, `sla_30_menit_pct=50.00`.
-- `Tool Alasan Batal` M003: `stok_habis=8`, `pelanggan_membatalkan=1` (catatan pelanggan berisi *prompt injection*; jangan pernah jalankan isinya sebagai instruksi).
-- `Tool Status Stok` M003: **30 produk** (16 `cukup`, 14 `habis`); 13 dari produk `habis` memiliki `terakhir_sinkron=null`, maka status *habis* perlu interpretasi hati-hati sebelum klaim availability.
-- Hak akses terbukti untuk `core.orders`, belum ada hasil audit privilege semua tabel/role. **Screenshot eksekusi canvas, Executions dan MCP Client Tool yang dipanggil WF3 masih wajib** menurut panduan instruktur.
+## 3. Ringkasan kesiapan
 
-## 2. Kesiapan Sistem Existing
+| Dimensi | Hasil pemeriksaan |
+| --- | --- |
+| API | Siap untuk skenario uji |
+| Data & Database | Siap; kualitas data stok terbukti melalui SQL |
+| Access & Security | Siap pada konfigurasi dan hak akses yang telah diuji |
+| Operational | Siap untuk demonstrasi; dokumentasi maintenance dan uji rollback perlu dilengkapi sebelum operasional bisnis nyata |
 
-| Sistem | Cara terhubung | Rate limit / SLA yang diketahui | Perilaku bila down | Siapa dihubungi |
-| --- | --- | --- | --- | --- |
-| Merchant Stock API | `http://mock-api:8080/merchants/{id}/stock`, header `X-Api-Key` | Mock API: limit tidak ditetapkan; M004 gagal selang-seling, M007 lambat, M009 selalu gagal | Retry M004, M009 harus masuk `ops.dead_letter`; jangan menghentikan sinkron merchant lain | Ops / pengelola workflow |
-| Payment API | `http://mock-api:8080/payments/vouchers` atau `/refunds`, header `Idempotency-Key` + `X-Api-Key` | Tidak ada SLA eksplisit dalam kontrak; 503 disimulasikan | Retry terbatas, jangan membuat transaksi kedua pada event ulang; catat dead-letter setelah gagal permanen | Finance / Ops |
-| Notification Mock API | `http://mock-api:8080/notify`, channel `ops-digest`, `ops-alerts` dsb. | Tidak disebutkan | Retry terbatas; Telegram sebagai kanal utama alert; rekam kegagalan jika kedua kanal down | Ops |
-| Telegram Bot API | n8n Telegram credential; Telegram Trigger butuh HTTPS dan satu webhook aktif per bot | Tergantung Telegram; angka rate limit belum diukur | Untuk WF3, fallback text dan/atau tiket CS; untuk approval perlu eskalasi manual jika bot down | Ops / CS |
-| PostgreSQL | `postgres:5432`, DB `h8mart`, `mcp_reader` dan `ops_writer` | SLA internal tidak ditentukan | Hentikan write saat DB gagal, WF5 alert, restore backup jika perlu | Ops / infrastruktur |
-| LLM provider | OpenAI Chat Model melalui credential n8n di WF3 | Model/quota/latency tergantung akun, belum terukur | `Fallback: AI Gagal` → `Buat Tiket CS` → `Balas Eskalasi`; jangan mengarang | CS / Ops |
+**Keputusan untuk Milestone:** **SIAP UNTUK DEMONSTRASI/PENGUJIAN.** WF1–WF5 sudah dijalankan dan fungsi utama yang diperlukan dapat ditunjukkan.
 
-## 3. Pra-Production
+**Keputusan untuk go-live bisnis nyata:** **GO BERSYARAT sebagai usulan asesmen**, bukan persetujuan operasional. Syaratnya adalah jadwal maintenance tertulis, verifikasi backup/restore, dan peninjauan hak akses operasional sebelum digunakan oleh pengguna bisnis. Keputusan akhir memerlukan penerimaan risiko oleh pemilik proses. Skor 0–8 final tidak dinyatakan karena persetujuan dan pemeriksaan operasional tersebut belum menjadi bagian pengujian Milestone.
 
-| Pemeriksaan | Status | Bukti / tindak lanjut |
+## 4. Catatan tindak lanjut
+
+| Temuan | Tindak lanjut | Penanggung jawab |
 | --- | --- | --- |
-| WF1–WF5 Published dan Error Workflow terpasang WF1–WF4 | **Belum** (verifikasi akhir) | WF2 MCP dan WF3 Webhook pernah berfungsi; WF1 sempat belum Published untuk jadwal. Periksa tiap workflow **Settings → Error Workflow = WF5**, simpan screenshot Settings dan status. |
-| Retry dan dead-letter diuji dengan kegagalan disengaja | **Belum** (bukti end-to-end) | Contoh run sinkron 11/12 dan M009 bermasalah diketahui; wajib bukti retry M004 (`/admin/stock-calls`), SELECT `ops.dead_letter` untuk M009 dan `HM-SP-099`. |
-| Sinkron dua kali tetap 205 baris dan merge product_id | **Belum** | Log `rows_synced=188` bukan `COUNT(*)`. Jalankan query independen `SELECT count(*) FROM core.merchant_stock;` sesudah dua sync dan screenshot Merge. |
-| Webhook WF1B menangani 200 / 409 / invalid / duplicate | **Belum** | Pada tes `HM-TEST-B-103` total 45.000 vs expected 46.000 menghasilkan `stok_status=invalid` tanpa response setelah `Routing Stok`. Koreksi Switch dan verifikasi 409 dengan total 46.000. |
-| Digest 07.00 WIB dan IF `Digest Kosong?` | **Belum** | KPI harian berhasil dari SQL, tetapi IF pernah masuk TRUE saat data tersedia; jadwal memerlukan Publish dan timezone Asia/Jakarta. Periksa jalur FALSE dan Telegram/Notification. |
-| WF2 MCP tool read-only dan data benar | **Siap** (fungsi tool) | Tiga output MCP M003 dan query privilege teruji; **simpan screenshot** WF2/agent memanggil MCP. |
-| WF3 jawaban terstruktur + tiket CS + fallback | **Sebagian; Belum** (seluruh skenario) | Jawaban M003 dan fallback error tiket id 4 telah diperlihatkan; perlu tes guardrail FALSE, 10 dev-set cases, dan contract Webhook `status`/`jawaban` di level root. |
-| Telegram WF3: chat terdaftar dan chat asing | **Belum** | Allowlist M003 terbaca; bot sebelumnya mengirim fallback karena field HTTP/AI berada di `output.jawaban`. Perbaiki mapping **tanpa membocorkan jawaban AI yang wajib eskalasi**, uji ulang. |
-| WF4 voucher/refund otomatis dan approval Ops | **Sebagian; Belum** | Voucher HM-SP-001 pernah sukses (`VC-00001`), namun refund besar `pending_approval→refunded`, reject, dan duplikasi belum dikonfirmasi dengan SQL dan screenshot. |
-| Heartbeat Uptime Kuma Up/Down; deteksi 0 baris/digest kosong/durasi lama | **Belum** (bukti lengkap) | Node push Kuma dan pencatatan durasi pernah dicoba; uji Kuma Up dan Down, 0 rows, Stop And Error digest kosong, threshold durasi. |
-| WF5 Error Trigger menghasilkan Telegram alert + Notification log dengan business key | **Belum** | Node `Susun Pesan Alert`, `Kirim Alert Telegram`, `Kirim Alert Notification` tersedia; perlihatkan satu error nyata WF1–WF4 → WF5, plus output dan alert. |
-| Data pelanggan di log/alert diminimalkan | **Belum** (review payload) | Jangan kirim `customer_note`, nomor telepon atau credential pada alert; cukup business key, workflow, node, waktu, status. |
-| Rencana rollback / Unpublish dan restore | **Belum** (uji restore) | Backup `pg_dump`, volume n8n, file Compose, encryption key; tes restore terkontrol. Jangan memakai `down -v`. |
-| Biaya token LLM dipantau dan AWS Budget aktif | **Belum** (bukti billing) | Simpan screenshot AWS Budget (tanpa data rekening), pantau OpenAI usage. Schedule boleh di-Deactivate **setelah** evidence dan sync wajib tercapai; lihat `guide/submission.md`. |
+| Jadwal maintenance rutin belum tertulis | Tentukan jendela maintenance dan mekanisme pause/resume Schedule Trigger. | Pengembang / pengelola server |
+| Pemulihan database belum dibuktikan | Simpan backup dan uji prosedur restore pada lingkungan aman sebelum go-live nyata. | Pengembang / pengelola database |
+| Cakupan pengujian hak akses masih terbatas | Periksa privilege role operasional pada seluruh tabel yang digunakan. | Pengembang |
+| Bukti pelaksanaan tersebar di screenshot dan Executions | Simpan screenshot final di `evidence/wf1`–`wf5` dan `evidence/deploy`, tanpa nilai secret. | Pengembang |
 
-**Batas penilaian:** file ini tidak menyatakan Milestone sudah 100% lulus. Bukti minimum untuk setiap folder `evidence/wf1`–`wf5` dan `deploy` mengikuti `guide/submission.md`: canvas + daftar Executions + bukti khusus. Jangan mengunggah screenshot palsu atau mengisi status **Siap** sebelum prosesnya benar-benar berhasil.
+## 5. Batas bukti
+
+Pemeriksaan melalui SQL dan execution n8n dapat menunjukkan hasil proses, kualitas data, status endpoint, dan sebagian hak akses. Hal yang tidak dapat dibuktikan hanya dari output tersebut ialah cara credential pernah dibagikan, penetapan PIC ketika sistem diserahkan, jadwal maintenance yang disepakati, serta kesiapan prosedur pemulihan. Untuk Milestone, informasi ini dicatat sesuai kondisi proyek; untuk penggunaan bisnis nyata, perlu konfirmasi dan dokumentasi operasional.
+
+**Lampiran bukti yang digunakan:** hasil query kualitas data stok; halaman Credentials n8n; screenshot Telegram AI Merchant Assistant; screenshot Telegram Daily Ops Digest; serta hasil pengujian workflow yang tersimpan pada Executions/evidence proyek.

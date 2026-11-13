@@ -1,0 +1,27 @@
+flowchart LR
+  subgraph C["Pelanggan / sistem asal"]
+    START([START]) --> P0["P0: Webhook order.created"]
+    E1["E1: Respon HTTP 409 / 422"] --> END([END])
+    P6["P6: Catat selesai normal"] --> END
+  end
+  subgraph OPS["n8n dan sistem operasional"]
+    P1["P1: WF1B Cek Stok Order"] --> D1{"D1: Stok cukup?"}
+    D1 -- Ya --> P2["P2: Catat Order + HTTP 200"]
+    P2 -. Event delivery berikutnya .-> P3["P3: WF4 Terima status delivery"]
+    P3 --> D2{"D2: Terlambat / gagal?"}
+    D2 -- Ya --> P4["P4: WF4 Tentukan Kebijakan"]
+    P4 --> D3{"D3: Perlu approval?"}
+    D3 -- Tidak --> P5["P5: Payment API + log + notify"]
+    D2 -- Tidak --> P6
+    D1 -- Tidak --> E1
+    P5 --> END
+  end
+  subgraph APP["Approver Ops - tetap manusia"]
+    H1["H1: Telegram Approval - setuju/tolak"]
+    E2["E2: Catat refund ditolak"]
+    H1 -- Ditolak --> E2
+    E2 --> END
+  end
+  P0 --> P1
+  D3 -- Ya --> H1
+  H1 -- Disetujui --> P5

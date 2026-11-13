@@ -1,0 +1,154 @@
+{
+  "name": "WF2 - Merchant Data Tools (MCP Server)",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "bearerAuth",
+        "path": "h8mart-merchant-tools"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "96f9eac9-d77d-44c4-96ec-f9da045e36ec",
+      "name": "MCP Server Trigger",
+      "webhookId": "1766912f-54f7-4abf-a7c3-4f6c884bd467",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "csehmVU3qomH73N5",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Mengambil KPI operasional satu merchant pada tanggal tertentu, meliputi total order, jumlah pembatalan, cancel rate, order terkirim, dan SLA 30 menit. Input: merchant_id dan tanggal. Jika tanggal kosong, gunakan hari data terakhir H8Mart",
+        "operation": "executeQuery",
+        "query": "WITH parameter AS (\n    SELECT\n        $1::text AS merchant_id,\n        COALESCE(\n            NULLIF($2::text, '')::date,\n            (SELECT hari_data_terakhir\n             FROM core.data_info\n             LIMIT 1)\n        ) AS tanggal_laporan\n)\n\nSELECT\n    m.merchant_id,\n    m.name AS nama_merchant,\n    p.tanggal_laporan,\n\n    COUNT(o.order_id)::integer AS total_order,\n\n    COUNT(o.order_id) FILTER (\n        WHERE o.status IN ('cancelled', 'failed')\n    )::integer AS order_batal,\n\n    COUNT(o.order_id) FILTER (\n        WHERE o.status = 'delivered'\n    )::integer AS order_terkirim,\n\n    COUNT(o.order_id) FILTER (\n        WHERE o.status = 'delivered'\n        AND d.actual_minutes <= d.promised_minutes\n    )::integer AS order_tepat_waktu,\n\n    COALESCE(\n        ROUND(\n            100.0 * COUNT(o.order_id) FILTER (\n                WHERE o.status IN ('cancelled', 'failed')\n            ) / NULLIF(COUNT(o.order_id), 0),\n            2\n        ), 0\n    ) AS cancel_rate_pct,\n\n    COALESCE(\n        ROUND(\n            100.0 * COUNT(o.order_id) FILTER (\n                WHERE o.status = 'delivered'\n                AND d.actual_minutes <= d.promised_minutes\n            ) / NULLIF(\n                COUNT(o.order_id) FILTER (\n                    WHERE o.status = 'delivered'\n                ), 0\n            ),\n            2\n        ), 0\n    ) AS sla_30_menit_pct\n\nFROM parameter p\nJOIN core.merchants m\n    ON m.merchant_id = p.merchant_id\n\nLEFT JOIN core.orders o\n    ON o.merchant_id = m.merchant_id\n    AND o.order_date = p.tanggal_laporan\n\nLEFT JOIN core.deliveries d\n    ON d.order_id = o.order_id\n\nGROUP BY\n    m.merchant_id,\n    m.name,\n    p.tanggal_laporan;\n",
+        "options": {
+          "queryReplacement": "={{ [\n  $fromAI(\n    'merchant_id',\n    'ID merchant yang ingin dianalisis, misalnya M001.',\n    'string'\n  ),\n  $fromAI(\n    'tanggal',\n    'Tanggal YYYY-MM-DD. Isi string kosong jika tidak disebutkan atau pengguna bertanya tentang kemarin, sehingga SQL memakai hari_data_terakhir.',\n    'string'\n  ) || ''\n] }}\n"
+        }
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.7,
+      "position": [
+        -64,
+        160
+      ],
+      "id": "a17a93de-ea08-4cc4-8d9e-741a10857a8f",
+      "name": "Tool KPI Merchant",
+      "credentials": {
+        "postgres": {
+          "id": "GZBAyBW2lMdIhZbo",
+          "name": "H8Mart PostgreSQL MCP Reader"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Mengambil lima alasan pembatalan pesanan teratas berdasarkan merchant dan tanggal, beserta jumlah pembatalan dan contoh catatan pelanggan. Gunakan merchant_id seperti M001 atau M003. Nilai ALL hanya untuk ringkasan operasional seluruh merchant pada WF1 Daily Digest. Jika tanggal kosong, gunakan hari data terakhir.",
+        "operation": "executeQuery",
+        "query": "WITH parameter AS (\n    SELECT\n        NULLIF(\n            NULLIF(UPPER(TRIM($1::text)), 'ALL'),\n            ''\n        ) AS merchant_id,\n\n        COALESCE(\n            NULLIF(TRIM($2::text), '')::date,\n            (\n                SELECT hari_data_terakhir\n                FROM core.data_info\n                LIMIT 1\n            )\n        ) AS tanggal_laporan\n),\n\nalasan AS (\n    SELECT\n        COALESCE(\n            NULLIF(TRIM(o.cancel_reason), ''),\n            'tidak_diketahui'\n        ) AS alasan_batal,\n\n        COUNT(*)::integer AS jumlah_pembatalan,\n\n        MIN(\n            LEFT(\n                NULLIF(TRIM(o.customer_note), ''),\n                200\n            )\n        ) AS contoh_catatan_pelanggan\n\n    FROM core.orders o\n    CROSS JOIN parameter p\n\n    WHERE o.order_date = p.tanggal_laporan\n      AND o.status IN ('cancelled', 'failed')\n      AND (\n          p.merchant_id IS NULL\n          OR o.merchant_id = p.merchant_id\n      )\n\n    GROUP BY\n        COALESCE(\n            NULLIF(TRIM(o.cancel_reason), ''),\n            'tidak_diketahui'\n        )\n)\n\nSELECT\n    p.tanggal_laporan,\n    COALESCE(\n        p.merchant_id,\n        'ALL'\n    ) AS merchant_id,\n\n    a.alasan_batal,\n    a.jumlah_pembatalan,\n\n    COALESCE(\n        a.contoh_catatan_pelanggan,\n        'Tidak ada catatan pelanggan'\n    ) AS contoh_catatan_pelanggan\n\nFROM alasan a\nCROSS JOIN parameter p\n\nORDER BY\n    a.jumlah_pembatalan DESC,\n    a.alasan_batal ASC\n\nLIMIT 5;\n",
+        "options": {
+          "queryReplacement": "={{ [\n  $fromAI(\n    'merchant_id',\n    'ID merchant seperti M003. Gunakan ALL hanya untuk permintaan ringkasan operasional seluruh merchant.',\n    'string'\n  ),\n  $fromAI(\n    'tanggal',\n    'Tanggal YYYY-MM-DD. Gunakan string kosong jika tidak ada tanggal agar SQL memakai hari_data_terakhir.',\n    'string'\n  ) || ''\n] }}\n"
+        }
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.7,
+      "position": [
+        96,
+        208
+      ],
+      "id": "771d0376-a9b5-4016-a8a3-d479795d7b61",
+      "name": "Tool Alasan Batal",
+      "credentials": {
+        "postgres": {
+          "id": "GZBAyBW2lMdIhZbo",
+          "name": "H8Mart PostgreSQL MCP Reader"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Memeriksa stok produk milik merchant tertentu berdasarkan merchant_id dan SKU opsional. Mengembalikan nama produk, SKU, jumlah stok, status stok, dan waktu sinkronisasi terakhir. Gunakan ALL untuk menampilkan seluruh produk merchant. Hanya membaca data PostgreSQL.",
+        "operation": "executeQuery",
+        "query": "WITH parameter AS (\n    SELECT\n        UPPER(TRIM($1::text)) AS merchant_id,\n        NULLIF(\n            NULLIF(UPPER(TRIM($2::text)), 'ALL'),\n            ''\n        ) AS sku\n)\n\nSELECT\n    m.merchant_id,\n    m.name AS nama_merchant,\n    p.product_id,\n    p.sku,\n    p.name AS nama_produk,\n    p.category AS kategori,\n\n    COALESCE(s.qty, 0) AS stok_tersedia,\n\n    CASE\n        WHEN COALESCE(s.qty, 0) = 0\n            THEN 'habis'\n        WHEN COALESCE(s.qty, 0) <= 2\n            THEN 'tipis'\n        ELSE 'cukup'\n    END AS status_stok,\n\n    s.synced_at AS terakhir_sinkron\n\nFROM parameter prm\n\nJOIN core.merchants m\n    ON m.merchant_id = prm.merchant_id\n   AND m.active = TRUE\n\nCROSS JOIN core.products p\n\nLEFT JOIN core.merchant_stock s\n    ON s.merchant_id = m.merchant_id\n   AND s.product_id = p.product_id\n\nWHERE\n    prm.sku IS NULL\n    OR p.sku = prm.sku\n\nORDER BY\n    p.sku\n\nLIMIT 30;\n",
+        "options": {
+          "queryReplacement": "={{ [\n  $fromAI(\n    'merchant_id',\n    'ID merchant yang ingin diperiksa, misalnya M001.',\n    'string'\n  ),\n  $fromAI(\n    'sku',\n    'SKU produk seperti SKU-001. Gunakan ALL untuk melihat semua produk merchant.',\n    'string',\n    'ALL'\n  )\n] }}\n"
+        }
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.7,
+      "position": [
+        304,
+        192
+      ],
+      "id": "4ff5dd2b-09d7-4175-9657-e2bae9975af3",
+      "name": "Tool Status Stok",
+      "credentials": {
+        "postgres": {
+          "id": "GZBAyBW2lMdIhZbo",
+          "name": "H8Mart PostgreSQL MCP Reader"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Tool KPI Merchant": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool Alasan Batal": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool Status Stok": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "2XQ3rtzxCIi7SebY",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "eb3fff35-d504-4f01-bd64-5860185b92a2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cccd27e63d9f66bd15ce68c3c2745181616cd0fe155609e5fba73fadf5499688"
+  },
+  "nodeGroups": [],
+  "id": "bDZYnz5T8OOg68eD",
+  "tags": []
+}

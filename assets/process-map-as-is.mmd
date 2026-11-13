@@ -1,0 +1,27 @@
+flowchart LR
+  subgraph C["Pelanggan"]
+    START([START]) --> P0["P0: Kirim order / keluhan"]
+    E1["E1: Pemberitahuan stok tidak cukup"] --> END([END])
+    P6["P6: Terima status normal"] --> END
+  end
+  subgraph OPS["Tim Operasional / CS"]
+    P1["P1: Cek stok ke merchant"] --> D1{"D1: Stok cukup?"}
+    D1 -- Ya --> P2["P2: Catat & proses order"]
+    P2 -. Event pengiriman .-> P3["P3: Pantau pengiriman"]
+    P3 --> D2{"D2: Terlambat / gagal?"}
+    D2 -- Ya --> P4["P4: Hitung voucher / refund"]
+    P4 --> D3{"D3: Perlu approval?"}
+    D3 -- Tidak --> P5["P5: Log & beri kabar"]
+    D2 -- Tidak --> P6
+    D1 -- Tidak --> E1
+    P5 --> END
+  end
+  subgraph APP["Approver Ops"]
+    H1["H1: Tinjau / putuskan"]
+    E2["E2: Catat penolakan"]
+    H1 -- Ditolak --> E2
+    E2 --> END
+  end
+  P0 --> P1
+  D3 -- Ya --> H1
+  H1 -- Disetujui --> P5

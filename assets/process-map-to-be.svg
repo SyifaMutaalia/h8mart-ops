@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3120" height="925" viewBox="0 0 3120 925">
+<rect width="3120" height="925" fill="white"/>
+<defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 Z" fill="#62788A"/></marker></defs>
+<text x="45" y="53" font-size="30" font-family="DejaVu Sans" font-weight="bold" fill="#21384C">BRD H8Mart · TO-BE (Proses Terotomasi)</text>
+<text x="45" y="96" font-size="15" font-family="DejaVu Sans" fill="#637586">Mapping kode sama dengan As-Is · WF1 + WF4 adalah proses inti; WF2/3/5 dan digest mendukung.</text>
+<rect x="40" y="140" width="3025" height="210" fill="#F7FAFC" stroke="#B4C5D2" stroke-width="2"/>
+<rect x="40" y="140" width="198" height="210" fill="#D7E5EF"/>
+<text x="138" y="238.0" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-size="19" font-weight="bold">Pelanggan</text>
+<text x="138" y="263.0" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-size="16">Merchant / Event</text>
+<rect x="40" y="350" width="3025" height="322" fill="#EFF5F9" stroke="#B4C5D2" stroke-width="2"/>
+<rect x="40" y="350" width="198" height="322" fill="#D7E5EF"/>
+<text x="138" y="504.0" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-size="19" font-weight="bold">Tim Operasional</text>
+<text x="138" y="529.0" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-size="16">n8n</text>
+<rect x="40" y="672" width="3025" height="194" fill="#F7FAFC" stroke="#B4C5D2" stroke-width="2"/>
+<rect x="40" y="672" width="198" height="194" fill="#D7E5EF"/>
+<text x="138" y="762.0" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-size="19" font-weight="bold">Supervisor Ops</text>
+<text x="138" y="787.0" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-size="16">CS</text>
+<path d="M 303.0 244.0 L 350.0 246.0" fill="none" stroke="#637586" stroke-width="3"  marker-end="url(#arr)"/>
+<path d="M 457.5 287.0 L 608.8 287.0 L 608.8 460.0 L 760.0 460.0" fill="none" stroke="#637586" stroke-width="3"  marker-end="url(#arr)"/>
+<path d="M 880.0 501.0 L 970.0 502.0" fill="none" stroke="#637586" stroke-width="3"  marker-end="url(#arr)"/>
+<path d="M 1014.0 458.0 L 1125.8 458.0 L 1125.8 302.0 L 1237.5 302.0" fill="none" stroke="#F06634" stroke-width="3"  marker-end="url(#arr)"/>
+<rect x="1076.3" y="359.4" rx="4" width="72" height="28" fill="white" opacity=".96"/>
+<text x="1112.3" y="379.4" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-weight="bold" font-size="15">Tidak</text>
+<path d="M 1058.0 502.0 L 1180.0 499.0" fill="none" stroke="#F06634" stroke-width="3"  marker-end="url(#arr)"/>
+<rect x="1075.7" y="470.7" rx="4" width="72" height="28" fill="white" opacity=".96"/>
+<text x="1111.7" y="490.7" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-weight="bold" font-size="15">Ya</text>
+<path d="M 1355.0 260.0 L 1310.0 160.0 L 2920.0 160.0 L 2890.0 246.0" fill="none" stroke="#637586" stroke-width="3"  marker-end="url(#arr)"/>
+<path d="M 1400.0 499.0 L 1490.0 499.0" fill="none" stroke="#637586" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#arr)"/>
+<rect x="1403.6" y="469.0" rx="4" width="72" height="28" fill="white" opacity=".96"/>
+<text x="1439.6" y="489.0" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-weight="bold" font-size="15">event baru</text>
+<path d="M 1705.0 499.0 L 1760.0 502.0" fill="none" stroke="#637586" stroke-width="3"  marker-end="url(#arr)"/>
+<path d="M 1804.0 458.0 L 1804.0 388.0 L 2685.0 388.0 L 2685.0 313.0" fill="none" stroke="#F06634" stroke-width="3"  marker-end="url(#arr)"/>
+<rect x="2155.6" y="364.2" rx="4" width="72" height="28" fill="white" opacity=".96"/>
+<text x="2191.6" y="384.2" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-weight="bold" font-size="15">Tidak</text>
+<path d="M 1848.0 502.0 L 1915.0 499.0" fill="none" stroke="#F06634" stroke-width="3"  marker-end="url(#arr)"/>
+<rect x="1841.5" y="470.7" rx="4" width="72" height="28" fill="white" opacity=".96"/>
+<text x="1877.5" y="490.7" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-weight="bold" font-size="15">Ya</text>
+<path d="M 2125.0 499.0 L 2190.0 502.0" fill="none" stroke="#637586" stroke-width="3"  marker-end="url(#arr)"/>
+<path d="M 2278.0 502.0 L 2570.0 499.0" fill="none" stroke="#F06634" stroke-width="3"  marker-end="url(#arr)"/>
+<rect x="2370.5" y="470.7" rx="4" width="72" height="28" fill="white" opacity=".96"/>
+<text x="2406.5" y="490.7" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-weight="bold" font-size="15">Tidak</text>
+<path d="M 2234.0 546.0 L 2330.0 546.0 L 2330.0 720.0 L 2426.0 720.0" fill="none" stroke="#F06634" stroke-width="3"  marker-end="url(#arr)"/>
+<rect x="2282.5" y="592.6" rx="4" width="72" height="28" fill="white" opacity=".96"/>
+<text x="2318.5" y="612.6" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-weight="bold" font-size="15">Ya</text>
+<path d="M 2426.0 720.0 L 2555.5 720.0 L 2555.5 540.0 L 2685.0 540.0" fill="none" stroke="#637586" stroke-width="3"  marker-end="url(#arr)"/>
+<rect x="2504.0" y="610.8" rx="4" width="72" height="28" fill="white" opacity=".96"/>
+<text x="2540.0" y="630.8" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-weight="bold" font-size="15">Setuju</text>
+<path d="M 2542.0 763.0 L 2620.0 763.0" fill="none" stroke="#637586" stroke-width="3"  marker-end="url(#arr)"/>
+<rect x="2540.3" y="733.0" rx="4" width="72" height="28" fill="white" opacity=".96"/>
+<text x="2576.3" y="753.0" text-anchor="middle" fill="#173F68" font-family="DejaVu Sans" font-weight="bold" font-size="15">Tolak</text>
+<path d="M 2722.5 720.0 L 2825.0 834.0 L 2930.0 834.0 L 2930.0 286.0" fill="none" stroke="#637586" stroke-width="3"  marker-end="url(#arr)"/>
+<path d="M 2685.0 458.0 L 2807.5 458.0 L 2807.5 286.0 L 2930.0 286.0" fill="none" stroke="#637586" stroke-width="3"  marker-end="url(#arr)"/>
+<path d="M 2800.0 272.0 L 2845.0 272.0 L 2845.0 246.0 L 2890.0 246.0" fill="none" stroke="#637586" stroke-width="3"  marker-end="url(#arr)"/>
+<ellipse cx="264.0" cy="244.0" rx="39.0" ry="39.0" fill="white" stroke="#173F68" stroke-width="3"/>
+<text x="264.0" y="249.0" font-size="15" font-family="DejaVu Sans" text-anchor="middle" fill="#173F68" font-weight="bold">START</text>
+<rect x="350" y="205" width="215" height="82" rx="14" fill="white" stroke="#173F68" stroke-width="3"/>
+<text x="457.5" y="241.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">P0 · Webhook</text>
+<text x="457.5" y="265.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">order.created</text>
+<rect x="640" y="460" width="240" height="82" rx="14" fill="white" stroke="#173F68" stroke-width="3"/>
+<text x="760.0" y="496.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">P1 · WF1B Cek Stok Order</text>
+<text x="760.0" y="520.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">(ditopang WF1A sync)</text>
+<polygon points="1014.0,458 1058,502.0 1014.0,546 970,502.0" fill="#FFF9F1" stroke="#F06634" stroke-width="4"/>
+<text x="1014.0" y="513.0" font-size="30" font-family="DejaVu Sans" text-anchor="middle" fill="#F06634" font-weight="bold">×</text>
+<rect x="1120" y="218" width="235" height="84" rx="14" fill="white" stroke="#B84336" stroke-width="3"/>
+<text x="1237.5" y="255.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">E1 · Respon 409 / 422</text>
+<text x="1237.5" y="279.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">+ status audit</text>
+<rect x="1180" y="458" width="220" height="82" rx="14" fill="white" stroke="#173F68" stroke-width="3"/>
+<text x="1290.0" y="494.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">P2 · Catat Order</text>
+<text x="1290.0" y="518.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">+ Respon 200</text>
+<rect x="1490" y="458" width="215" height="82" rx="14" fill="white" stroke="#173F68" stroke-width="3"/>
+<text x="1597.5" y="494.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">P3 · Terima event</text>
+<text x="1597.5" y="518.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">status delivery</text>
+<polygon points="1804.0,458 1848,502.0 1804.0,546 1760,502.0" fill="#FFF9F1" stroke="#F06634" stroke-width="4"/>
+<text x="1804.0" y="513.0" font-size="30" font-family="DejaVu Sans" text-anchor="middle" fill="#F06634" font-weight="bold">×</text>
+<rect x="1915" y="458" width="210" height="82" rx="14" fill="white" stroke="#173F68" stroke-width="3"/>
+<text x="2020.0" y="494.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">P4 · WF4 Tentukan</text>
+<text x="2020.0" y="518.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">Kebijakan</text>
+<polygon points="2234.0,458 2278,502.0 2234.0,546 2190,502.0" fill="#FFF9F1" stroke="#F06634" stroke-width="4"/>
+<text x="2234.0" y="513.0" font-size="30" font-family="DejaVu Sans" text-anchor="middle" fill="#F06634" font-weight="bold">×</text>
+<rect x="2310" y="720" width="232" height="86" rx="14" fill="#FFF1E9" stroke="#F06634" stroke-width="3"/>
+<text x="2426.0" y="758.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">H1 · Telegram Approval</text>
+<text x="2426.0" y="782.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">Ops: approve / decline</text>
+<rect x="2570" y="458" width="230" height="82" rx="14" fill="white" stroke="#173F68" stroke-width="3"/>
+<text x="2685.0" y="494.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">P5 · Payment API</text>
+<text x="2685.0" y="518.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">+ log + notify</text>
+<rect x="2570" y="231" width="230" height="82" rx="14" fill="white" stroke="#173F68" stroke-width="3"/>
+<text x="2685.0" y="267.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">P6 · Catat selesai</text>
+<text x="2685.0" y="291.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">(tanpa kompensasi)</text>
+<rect x="2620" y="720" width="205" height="86" rx="14" fill="white" stroke="#B84336" stroke-width="3"/>
+<text x="2722.5" y="758.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">E2 · Catat keputusan</text>
+<text x="2722.5" y="782.0" font-size="16" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C">refund ditolak</text>
+<ellipse cx="2930.0" cy="246.0" rx="40.0" ry="40.0" fill="white" stroke="#173F68" stroke-width="5"/>
+<text x="2930.0" y="251.0" font-size="15" font-family="DejaVu Sans" text-anchor="middle" fill="#173F68" font-weight="bold">END</text>
+<text x="1015" y="567" font-size="15" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C" font-weight="bold">Stok cukup?</text>
+<text x="1757" y="567" font-size="15" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C" font-weight="bold">Terlambat / gagal?</text>
+<text x="2222" y="567" font-size="15" font-family="DejaVu Sans" text-anchor="middle" fill="#21384C" font-weight="bold">Perlu approval?</text>
+</svg>
